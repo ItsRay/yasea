@@ -211,7 +211,7 @@ public class SrsPublisher {
         if (mic != null) {
             mic.startRecording();
 
-            byte pcmBuffer[] = new byte[4096];
+            byte pcmBuffer[] = new byte[SrsEncoder.bufferSize];
             while (aloop && !Thread.interrupted()) {
                 int size = mic.read(pcmBuffer, 0, pcmBuffer.length);
                 if (size <= 0) {

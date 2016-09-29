@@ -34,9 +34,10 @@ public class SrsEncoder {
     public static int vBitrate = 500 * 1000;  // 500kbps
     public static final int VFPS = 24;
     public static final int VGOP = 48;
-    public static final int ASAMPLERATE = 44100;
-    public static int aChannelConfig = AudioFormat.CHANNEL_IN_STEREO;
-    public static final int ABITRATE = 32 * 1000;  // 32kbps
+    public static final int ASAMPLERATE = 16000;
+    public static int aChannelConfig = AudioFormat.CHANNEL_IN_MONO;
+    public static final int ABITRATE = 32000;  // 32kbps
+    public static final int bufferSize = AudioRecord.getMinBufferSize(ASAMPLERATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)*2;
 
     private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
@@ -140,10 +141,12 @@ public class SrsEncoder {
 
         // setup the aencoder.
         // @see https://developer.android.com/reference/android/media/MediaCodec.html
-        int ach = aChannelConfig == AudioFormat.CHANNEL_IN_STEREO ? 2 : 1;
+        int ach = 1;
         MediaFormat audioFormat = MediaFormat.createAudioFormat(ACODEC, ASAMPLERATE, ach);
         audioFormat.setInteger(MediaFormat.KEY_BIT_RATE, ABITRATE);
-        audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
+        audioFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
+        final int bufferSize = AudioRecord.getMinBufferSize(ASAMPLERATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)*2;
+        audioFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, bufferSize);
         aencoder.configure(audioFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         // add the audio tracker to muxer.
         audioFlvTrack = flvMuxer.addTrack(audioFormat);
@@ -464,18 +467,18 @@ public class SrsEncoder {
     }
 
     public AudioRecord chooseAudioRecord() {
-        int minBufferSize = AudioRecord.getMinBufferSize(SrsEncoder.ASAMPLERATE, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT);
-        AudioRecord mic = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, SrsEncoder.ASAMPLERATE, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
-        if (mic.getState() != AudioRecord.STATE_INITIALIZED) {
-            mic = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, SrsEncoder.ASAMPLERATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
-            if (mic.getState() != AudioRecord.STATE_INITIALIZED) {
-                mic = null;
-            } else {
-                SrsEncoder.aChannelConfig = AudioFormat.CHANNEL_IN_MONO;
-            }
-        } else {
-            SrsEncoder.aChannelConfig = AudioFormat.CHANNEL_IN_STEREO;
-        }
+        AudioRecord mic = new AudioRecord(MediaRecorder.AudioSource.MIC, ASAMPLERATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize);
+
+        //if (mic.getState() != AudioRecord.STATE_INITIALIZED) {
+        //    mic = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, SrsEncoder.ASAMPLERATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minBufferSize);
+        //    if (mic.getState() != AudioRecord.STATE_INITIALIZED) {
+        //        mic = null;
+        //    } else {
+        //        SrsEncoder.aChannelConfig = AudioFormat.CHANNEL_IN_MONO;
+        //    }
+        //} else {
+        //    SrsEncoder.aChannelConfig = AudioFormat.CHANNEL_IN_STEREO;
+        //}
 
         return mic;
     }
